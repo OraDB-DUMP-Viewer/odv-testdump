@@ -1,7 +1,20 @@
+# =============================================================================
+# Oracle Database テスト環境 (複数バージョン対応)
+#
+# 使い方:
+#   docker compose --profile 23ai up -d    # 23ai のみ起動
+#   docker compose --profile 21c up -d     # 21c のみ起動
+#   docker compose --profile 11g up -d     # 11g のみ起動 (EXP対応)
+#   docker compose --profile all up -d     # 全バージョン同時起動
+# =============================================================================
+
 services:
-  oracle:
+  # ============================================
+  # Oracle Database 23ai Free (最新)
+  # ============================================
+  oracle-23ai:
     image: gvenzl/oracle-free:23-slim
-    container_name: oracle-testdump
+    container_name: oracle-23ai
     ports:
       - "1521:1521"
     environment:
@@ -9,9 +22,9 @@ services:
       APP_USER: ODV_TEST
       APP_USER_PASSWORD: odv_test
     volumes:
-      - oracle-data:/opt/oracle/oradata
+      - oracle-23ai-data:/opt/oracle/oradata
       - ./scripts/sql:/opt/oracle/scripts/sql
-      - ./output:/opt/oracle/dump
+      - ./output/23ai:/opt/oracle/dump
     healthcheck:
       test: ["CMD", "healthcheck.sh"]
       interval: 30s
@@ -19,6 +32,85 @@ services:
       retries: 20
       start_period: 120s
     restart: unless-stopped
+    profiles: ["23ai", "all", "default"]
+
+  # ============================================
+  # Oracle Database 21c XE
+  # ============================================
+  oracle-21c:
+    image: gvenzl/oracle-xe:21-slim
+    container_name: oracle-21c
+    ports:
+      - "1522:1521"
+    environment:
+      ORACLE_PASSWORD: oracle
+      APP_USER: ODV_TEST
+      APP_USER_PASSWORD: odv_test
+    volumes:
+      - oracle-21c-data:/opt/oracle/oradata
+      - ./scripts/sql:/opt/oracle/scripts/sql
+      - ./output/21c:/opt/oracle/dump
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 120s
+    restart: unless-stopped
+    profiles: ["21c", "all"]
+
+  # ============================================
+  # Oracle Database 18c XE
+  # ============================================
+  oracle-18c:
+    image: gvenzl/oracle-xe:18-slim
+    container_name: oracle-18c
+    ports:
+      - "1523:1521"
+    environment:
+      ORACLE_PASSWORD: oracle
+      APP_USER: ODV_TEST
+      APP_USER_PASSWORD: odv_test
+    volumes:
+      - oracle-18c-data:/opt/oracle/oradata
+      - ./scripts/sql:/opt/oracle/scripts/sql
+      - ./output/18c:/opt/oracle/dump
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 120s
+    restart: unless-stopped
+    profiles: ["18c", "all"]
+
+  # ============================================
+  # Oracle Database 11g XE (レガシー EXP コマンド対応)
+  # ============================================
+  oracle-11g:
+    image: gvenzl/oracle-xe:11-slim
+    container_name: oracle-11g
+    ports:
+      - "1524:1521"
+    environment:
+      ORACLE_PASSWORD: oracle
+      APP_USER: ODV_TEST
+      APP_USER_PASSWORD: odv_test
+    volumes:
+      - oracle-11g-data:/opt/oracle/oradata
+      - ./scripts/sql:/opt/oracle/scripts/sql
+      - ./output/11g:/opt/oracle/dump
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 120s
+    restart: unless-stopped
+    profiles: ["11g", "all"]
 
 volumes:
-  oracle-data:
+  oracle-23ai-data:
+  oracle-21c-data:
+  oracle-18c-data:
+  oracle-11g-data:

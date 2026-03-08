@@ -1,0 +1,184 @@
+# =============================================================================
+# テストダンプファイル自動生成 & GitHub Releases 公開
+#
+# チーム開発者は GitHub Releases からダンプファイルをダウンロードできます。
+# 手動実行: Actions タブ → "Generate Test Dumps" → Run workflow
+# =============================================================================
+
+name: Generate Test Dumps
+
+on:
+  workflow_dispatch:
+    inputs:
+      oracle_versions:
+        description: 'Oracle versions (comma-separated: 23ai,21c,18c,11g)'
+        required: false
+        default: '23ai'
+      release_tag:
+        description: 'Release tag (e.g., v1.0.0, latest)'
+        required: false
+        default: 'latest'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/sql/**'
+      - 'scripts/shell/**'
+      - 'scripts/generate-all.sh'
+      - 'docker-compose.yml'
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      matrix:
+        oracle_version: [23ai]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Oracle ${{ matrix.oracle_version }}
+        run: |
+          mkdir -p output/${{ matrix.oracle_version }}
+          chmod 777 output/${{ matrix.oracle_version }}
+
+          # コンテナ名を統一
+          export CONTAINER="oracle-${{ matrix.oracle_version }}"
+
+          # docker compose でバージョン指定起動
+          docker compose --profile ${{ matrix.oracle_version }} up -d
+
+      - name: Wait for Oracle ${{ matrix.oracle_version }}
+        run: |
+          CONTAINER="oracle-${{ matrix.oracle_version }}"
+          MAX_WAIT=600
+          ELAPSED=0
+
+          echo "Oracle ${{ matrix.oracle_version }} の起動を待機中..."
+          while [ $ELAPSED -lt $MAX_WAIT ]; do
+            if docker exec $CONTAINER sqlplus -s /nolog 2>/dev/null <<EOF | grep -q "ALIVE"
+          CONNECT system/oracle@localhost:1521/FREEPDB1
+          SET HEADING OFF FEEDBACK OFF
+          SELECT 'ALIVE' FROM dual;
+          EXIT;
+          EOF
+            then
+              echo "Oracle ${{ matrix.oracle_version }} 起動完了 (${ELAPSED}秒)"
+              exit 0
+            fi
+            echo "  待機中... (${ELAPSED}/${MAX_WAIT}秒)"
+            sleep 10
+            ELAPSED=$((ELAPSED + 10))
+          done
+
+          echo "Oracle ${{ matrix.oracle_version }} がタイムアウト"
+          docker logs $CONTAINER | tail -50
+          exit 1
+
+      - name: Load test data
+        run: |
+          CONTAINER="oracle-${{ matrix.oracle_version }}"
+          DB_SERVICE="localhost:1521/FREEPDB1"
+
+          echo "テストデータ投入中..."
+
+          # SYSTEM でユーザー作成
+          docker exec -i $CONTAINER sqlplus -s system/oracle@$DB_SERVICE \
+            < scripts/sql/00_setup_users.sql
+
+          # ODV_TEST でテーブル作成
+          for sql in 01_basic_types 02_lob_types 03_datetime_types 04_numeric_types \
+                     05_nchar_types 06_edge_cases 08_xmltype_raw 09_all_oracle_types \
+                     10_advanced_scenarios 11_japanese_tables; do
+            echo "  -> ${sql}.sql"
+            docker exec -i $CONTAINER sqlplus -s ODV_TEST/odv_test@$DB_SERVICE \
+              < scripts/sql/${sql}.sql || true
+          done
+
+          # ODV_TEST2
+          docker exec -i $CONTAINER sqlplus -s ODV_TEST2/odv_test2@$DB_SERVICE \
+            < scripts/sql/07_multi_schema.sql
+
+      - name: Generate EXPDP dumps
+        run: |
+          CONTAINER="oracle-${{ matrix.oracle_version }}"
+
+          for script in export_expdp export_expdp_compress export_expdp_options; do
+            docker cp scripts/shell/${script}.sh $CONTAINER:/tmp/${script}.sh
+            docker exec $CONTAINER bash /tmp/${script}.sh || true
+          done
+
+      - name: Generate EXP dumps (legacy)
+        run: |
+          CONTAINER="oracle-${{ matrix.oracle_version }}"
+          docker cp scripts/shell/export_exp.sh $CONTAINER:/tmp/export_exp.sh
+          docker exec $CONTAINER bash /tmp/export_exp.sh || true
+
+      - name: List generated dumps
+        run: |
+          echo "=== Generated dump files for Oracle ${{ matrix.oracle_version }} ==="
+          ls -lh output/${{ matrix.oracle_version }}/ 2>/dev/null || echo "(no files in output/)"
+          echo ""
+          echo "=== Files inside container ==="
+          docker exec oracle-${{ matrix.oracle_version }} ls -lh /opt/oracle/dump/ 2>/dev/null || echo "(empty)"
+
+      - name: Package dumps
+        run: |
+          VERSION="${{ matrix.oracle_version }}"
+          cd output/${VERSION}
+          tar czf ../../odv-testdump-${VERSION}.tar.gz *.dmp 2>/dev/null || echo "No .dmp files to package"
+          cd ../..
+          ls -lh odv-testdump-*.tar.gz 2>/dev/null || echo "No packages created"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: testdump-${{ matrix.oracle_version }}
+          path: |
+            odv-testdump-*.tar.gz
+            output/${{ matrix.oracle_version }}/*.dmp
+          if-no-files-found: warn
+
+  release:
+    needs: generate
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Create/Update Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.release_tag || 'latest' }}
+          name: "Test Dump Files"
+          body: |
+            ## OraDB DUMP Viewer テスト用ダンプファイル
+
+            Oracle Database の各バージョンで生成されたテスト用ダンプファイル (.dmp) です。
+
+            ### ダウンロード方法
+            下のファイルから必要なバージョンの .tar.gz をダウンロードして展開してください。
+
+            ### 含まれるデータ型
+            全 Oracle データ型 (VARCHAR2, NUMBER, DATE, TIMESTAMP, LOB, XMLTYPE, JSON, BOOLEAN 等)
+
+            ### 含まれるエッジケース
+            空テーブル / trailing NULL / 幅広テーブル / 日本語テーブル名 / 大量行 等
+
+            ---
+            自動生成: ${{ github.sha }}
+          files: |
+            artifacts/**/*.tar.gz
+            artifacts/**/*.dmp
+          prerelease: false
+          make_latest: true
