@@ -1,7 +1,14 @@
 -- =============================================================================
 -- テスト用ユーザー・権限・ディレクトリ作成
 -- SYSTEM ユーザーで実行
+--
+-- 注: gvenzl/oracle-free イメージは APP_USER 環境変数でユーザーを自動作成する。
+--     ここでは DROP→再作成してテスト用の権限を付与する。
+--     slim イメージには USERS テーブルスペースがないため、
+--     DEFAULT TABLESPACE は指定しない（DB既定を使用）。
 -- =============================================================================
+
+WHENEVER SQLERROR EXIT SQL.SQLCODE
 
 -- テスト用ユーザー1
 BEGIN
@@ -11,9 +18,7 @@ END;
 /
 
 CREATE USER ODV_TEST IDENTIFIED BY odv_test
-    DEFAULT TABLESPACE USERS
-    TEMPORARY TABLESPACE TEMP
-    QUOTA UNLIMITED ON USERS;
+    QUOTA UNLIMITED ON DATA;
 
 GRANT CONNECT, RESOURCE TO ODV_TEST;
 GRANT CREATE TABLE TO ODV_TEST;
@@ -31,9 +36,7 @@ END;
 /
 
 CREATE USER ODV_TEST2 IDENTIFIED BY odv_test2
-    DEFAULT TABLESPACE USERS
-    TEMPORARY TABLESPACE TEMP
-    QUOTA UNLIMITED ON USERS;
+    QUOTA UNLIMITED ON DATA;
 
 GRANT CONNECT, RESOURCE TO ODV_TEST2;
 GRANT CREATE TABLE TO ODV_TEST2;

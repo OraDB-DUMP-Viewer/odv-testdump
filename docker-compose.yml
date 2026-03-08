@@ -19,8 +19,6 @@ services:
       - "1521:1521"
     environment:
       ORACLE_PASSWORD: oracle
-      APP_USER: ODV_TEST
-      APP_USER_PASSWORD: odv_test
     volumes:
       - oracle-23ai-data:/opt/oracle/oradata
       - ./scripts/sql:/opt/oracle/scripts/sql
@@ -44,8 +42,6 @@ services:
       - "1522:1521"
     environment:
       ORACLE_PASSWORD: oracle
-      APP_USER: ODV_TEST
-      APP_USER_PASSWORD: odv_test
     volumes:
       - oracle-21c-data:/opt/oracle/oradata
       - ./scripts/sql:/opt/oracle/scripts/sql
@@ -69,8 +65,6 @@ services:
       - "1523:1521"
     environment:
       ORACLE_PASSWORD: oracle
-      APP_USER: ODV_TEST
-      APP_USER_PASSWORD: odv_test
     volumes:
       - oracle-18c-data:/opt/oracle/oradata
       - ./scripts/sql:/opt/oracle/scripts/sql
@@ -94,8 +88,6 @@ services:
       - "1524:1521"
     environment:
       ORACLE_PASSWORD: oracle
-      APP_USER: ODV_TEST
-      APP_USER_PASSWORD: odv_test
     volumes:
       - oracle-11g-data:/opt/oracle/oradata
       - ./scripts/sql:/opt/oracle/scripts/sql

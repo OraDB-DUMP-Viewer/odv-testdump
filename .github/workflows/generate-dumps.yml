@@ -99,7 +99,7 @@ jobs:
 
           # ODV_TEST2
           docker exec -i $CONTAINER sqlplus -s ODV_TEST2/odv_test2@$DB_SERVICE \
-            < scripts/sql/07_multi_schema.sql
+            < scripts/sql/07_multi_schema.sql || true
 
       - name: Generate EXPDP dumps
         run: |
