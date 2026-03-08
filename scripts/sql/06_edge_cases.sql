@@ -1,0 +1,129 @@
+-- =============================================================================
+-- エッジケース (空テーブル / 幅広テーブル / trailing NULL / 大量行)
+-- ODV_TEST ユーザーで実行
+-- =============================================================================
+
+-- 空テーブル (0行)
+CREATE TABLE T_EMPTY (
+    ID              NUMBER(10)      NOT NULL,
+    COL_NAME        VARCHAR2(100),
+    COL_VALUE       NUMBER,
+    CONSTRAINT PK_EMPTY PRIMARY KEY (ID)
+);
+
+-- 1行テーブル
+CREATE TABLE T_SINGLE_ROW (
+    ID              NUMBER(10)      NOT NULL,
+    COL_NAME        VARCHAR2(100),
+    COL_VALUE       NUMBER,
+    CONSTRAINT PK_SINGLE_ROW PRIMARY KEY (ID)
+);
+
+INSERT INTO T_SINGLE_ROW VALUES (1, 'Only row', 42);
+COMMIT;
+
+-- 末尾 NULL カラム (EXPDP trailing NULL 対応テスト)
+CREATE TABLE T_TRAILING_NULLS (
+    ID              NUMBER(10)      NOT NULL,
+    COL_A           VARCHAR2(100),
+    COL_B           VARCHAR2(100),
+    COL_C           VARCHAR2(100),
+    COL_D           VARCHAR2(100),
+    COL_E           VARCHAR2(100),
+    CONSTRAINT PK_TRAILING_NULLS PRIMARY KEY (ID)
+);
+
+INSERT INTO T_TRAILING_NULLS VALUES (1, 'a1', 'b1', 'c1', 'd1', 'e1');
+INSERT INTO T_TRAILING_NULLS VALUES (2, 'a2', 'b2', 'c2', 'd2', NULL);
+INSERT INTO T_TRAILING_NULLS VALUES (3, 'a3', 'b3', 'c3', NULL, NULL);
+INSERT INTO T_TRAILING_NULLS VALUES (4, 'a4', 'b4', NULL, NULL, NULL);
+INSERT INTO T_TRAILING_NULLS VALUES (5, 'a5', NULL, NULL, NULL, NULL);
+INSERT INTO T_TRAILING_NULLS VALUES (6, NULL, NULL, NULL, NULL, NULL);
+COMMIT;
+
+-- 幅広テーブル (30列)
+CREATE TABLE T_WIDE_TABLE (
+    ID      NUMBER(10) NOT NULL,
+    C01 VARCHAR2(50), C02 VARCHAR2(50), C03 VARCHAR2(50), C04 VARCHAR2(50), C05 VARCHAR2(50),
+    C06 VARCHAR2(50), C07 VARCHAR2(50), C08 VARCHAR2(50), C09 VARCHAR2(50), C10 VARCHAR2(50),
+    C11 NUMBER,       C12 NUMBER,       C13 NUMBER,       C14 NUMBER,       C15 NUMBER,
+    C16 DATE,         C17 DATE,         C18 DATE,         C19 DATE,         C20 DATE,
+    C21 VARCHAR2(50), C22 VARCHAR2(50), C23 VARCHAR2(50), C24 VARCHAR2(50), C25 VARCHAR2(50),
+    C26 NUMBER,       C27 NUMBER,       C28 NUMBER,       C29 NUMBER,
+    CONSTRAINT PK_WIDE_TABLE PRIMARY KEY (ID)
+);
+
+INSERT INTO T_WIDE_TABLE VALUES (1,
+    'v01','v02','v03','v04','v05','v06','v07','v08','v09','v10',
+    11, 12, 13, 14, 15,
+    SYSDATE, SYSDATE, SYSDATE, SYSDATE, SYSDATE,
+    'v21','v22','v23','v24','v25',
+    26, 27, 28, 29
+);
+
+INSERT INTO T_WIDE_TABLE VALUES (2,
+    NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+    NULL,NULL,NULL,NULL,NULL,
+    NULL,NULL,NULL,NULL,NULL,
+    NULL,NULL,NULL,NULL,NULL,
+    NULL,NULL,NULL,NULL
+);
+
+-- 一部だけ値があるパターン
+INSERT INTO T_WIDE_TABLE VALUES (3,
+    'v01',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+    NULL,NULL,NULL,NULL,15,
+    NULL,NULL,NULL,NULL,NULL,
+    NULL,NULL,NULL,NULL,NULL,
+    NULL,NULL,NULL,29
+);
+
+COMMIT;
+
+-- 大量行テーブル (10,000行)
+CREATE TABLE T_LARGE_TABLE (
+    ID              NUMBER(10)      NOT NULL,
+    COL_NAME        VARCHAR2(100),
+    COL_VALUE       NUMBER(10, 2),
+    COL_DATE        DATE,
+    COL_DESC        VARCHAR2(500),
+    CONSTRAINT PK_LARGE_TABLE PRIMARY KEY (ID)
+);
+
+BEGIN
+    FOR i IN 1..10000 LOOP
+        INSERT INTO T_LARGE_TABLE VALUES (
+            i,
+            'Record_' || TO_CHAR(i, 'FM00000'),
+            ROUND(DBMS_RANDOM.VALUE(0, 99999), 2),
+            SYSDATE - DBMS_RANDOM.VALUE(0, 3650),
+            'Description for record ' || i || ': ' || RPAD('x', MOD(i, 200), 'y')
+        );
+        IF MOD(i, 1000) = 0 THEN
+            COMMIT;
+        END IF;
+    END LOOP;
+    COMMIT;
+END;
+/
+
+-- 非常に幅広テーブル (100列以上)
+CREATE TABLE T_VERY_WIDE (
+    ID NUMBER(10) NOT NULL,
+    CONSTRAINT PK_VERY_WIDE PRIMARY KEY (ID)
+);
+
+-- 動的にカラム追加
+BEGIN
+    FOR i IN 1..99 LOOP
+        EXECUTE IMMEDIATE 'ALTER TABLE T_VERY_WIDE ADD COL_' || TO_CHAR(i, 'FM000') || ' VARCHAR2(20)';
+    END LOOP;
+END;
+/
+
+INSERT INTO T_VERY_WIDE (ID) VALUES (1);
+INSERT INTO T_VERY_WIDE (ID) VALUES (2);
+UPDATE T_VERY_WIDE SET COL_001 = 'First', COL_050 = 'Middle', COL_099 = 'Last' WHERE ID = 1;
+COMMIT;
+
+EXIT;

@@ -1,0 +1,14 @@
+# ダンプファイル (生成されるもの)
+output/*.dmp
+output/*.log
+
+# Oracle データ
+oracle-data/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
