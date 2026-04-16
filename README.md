@@ -1,6 +1,6 @@
 # odv-testdump
 
-OraDB DUMP Viewer のテスト用 Oracle ダンプファイル (.dmp) を生成する環境です。
+Open DUMP Viewer for Oracle database のテスト用 Oracle ダンプファイル (.dmp) を生成する環境です。
 
 Docker 上の Oracle Database Free を使用して、**Oracle の全データ型・全エクスポート形式・エッジケース** を網羅したダンプファイルを自動生成します。
 
@@ -8,7 +8,7 @@ Docker 上の Oracle Database Free を使用して、**Oracle の全データ型
 
 | リポジトリ | 内容 |
 |---|---|
-| [OraDB-DUMP-Viewer/OraDB-DUMP-Viewer](https://github.com/OraDB-DUMP-Viewer/OraDB-DUMP-Viewer) | 本体アプリケーション (VB.NET GUI + C パーサーライブラリ) |
+| [Open-DUMP-Viewer/Open-DUMP-Viewer](https://github.com/Open-DUMP-Viewer/Open-DUMP-Viewer) | 本体アプリケーション (VB.NET GUI + C パーサーライブラリ) |
 | **本リポジトリ** | テスト用ダンプファイル生成環境 |
 
 生成したダンプファイルは、本体リポジトリの `test_dumps/` ディレクトリにコピーしてテストハーネス (`test_parser.c`) で使用します。
@@ -23,7 +23,7 @@ Docker 上の Oracle Database Free を使用して、**Oracle の全データ型
 
 ```bash
 # 1. リポジトリをクローン
-git clone https://github.com/OraDB-DUMP-Viewer/odv-testdump.git
+git clone https://github.com/Open-DUMP-Viewer/odv-testdump.git
 cd odv-testdump
 
 # 2. 初期セットアップ (Docker インストール + Oracle コンテナ起動)

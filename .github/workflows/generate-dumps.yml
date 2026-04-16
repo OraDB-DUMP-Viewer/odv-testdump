@@ -162,7 +162,7 @@ jobs:
           tag_name: ${{ github.event.inputs.release_tag || 'latest' }}
           name: "Test Dump Files"
           body: |
-            ## OraDB DUMP Viewer テスト用ダンプファイル
+            ## Open DUMP Viewer for Oracle database テスト用ダンプファイル
 
             Oracle Database の各バージョンで生成されたテスト用ダンプファイル (.dmp) です。
 

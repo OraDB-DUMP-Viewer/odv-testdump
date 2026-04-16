@@ -10,7 +10,7 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 CONTAINER="oracle-testdump"
 
 echo "========================================"
-echo " OraDB DUMP Viewer - テストダンプ一括生成"
+echo " Open DUMP Viewer for Oracle database - テストダンプ一括生成"
 echo "========================================"
 
 # Oracle 起動待機

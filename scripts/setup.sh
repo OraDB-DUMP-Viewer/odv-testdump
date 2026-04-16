@@ -9,7 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
 echo "========================================"
-echo " OraDB DUMP Viewer - テスト環境セットアップ"
+echo " Open DUMP Viewer for Oracle database - テスト環境セットアップ"
 echo "========================================"
 
 # ------------------------------------------------------------
